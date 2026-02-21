@@ -1,0 +1,8 @@
+id: test
+title: Test
+version: 0.1.0.0
+license: MIT
+main:
+  type: docker
+  image: hello-world:latest
+

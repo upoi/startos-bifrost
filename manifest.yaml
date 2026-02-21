@@ -1,0 +1,85 @@
+id: bifrost
+title: "Family AI Gateway"
+version: 0.1.0.0
+release-notes: "Initial release of Bifrost AI Gateway."
+license: Apache-2.0
+wrapper-repo: "https://github.com/upoi/family-ai-gateway"
+upstream-repo: "https://github.com/maximhq/bifrost"
+support-site: "https://getmaxim.ai/bifrost"
+build: ["make"]
+description:
+  short: Bifrost AI Gateway
+  long: Bifrost AI Gateway - Unified API for AI providers
+assets:
+  license: LICENSE
+  icon: icon.png
+  instructions: instructions.md
+main:
+  type: docker
+  image: main
+  entrypoint: "docker_entrypoint.sh"
+  args: []
+  mounts:
+    main: /app/data
+volumes:
+  main:
+    type: data
+health-checks:
+  main:
+    name: Bifrost API
+    success-message: The gateway is online and reachable.
+    type: docker
+    image: main
+    entrypoint: "curl"
+    args: ["-f", "http://localhost:8080/health"]
+    interval: 30s
+    timeout: 10s
+    start-period: 10s
+    retries: 3
+interfaces:
+  main:
+    name: Bifrost API
+    description: Bifrost AI Gateway
+    tor-config:
+      port-mapping:
+        80: "8080"
+    lan-config:
+      443:
+        ssl: true
+        internal: 8080
+    ui: true
+    protocols:
+      - tcp
+      - http
+config: ~
+properties: ~
+migrations:
+  from: {}
+  to: {}
+backup:
+  create:
+    type: docker
+    image: compat
+    system: true
+    entrypoint: compat
+    args:
+      - duplicity
+      - create
+      - /mnt/backup
+      - /app/data
+    mounts:
+      BACKUP: "/mnt/backup"
+      main: "/app/data"
+  restore:
+    type: docker
+    image: compat
+    system: true
+    entrypoint: compat
+    args:
+      - duplicity
+      - restore
+      - /mnt/backup
+      - /app/data
+    mounts:
+      BACKUP: "/mnt/backup"
+      main: "/app/data"      
