@@ -17,25 +17,19 @@ assets:
 main:
   type: docker
   image: main
-  entrypoint: "docker_entrypoint.sh"
-  args: []
+  entrypoint: "sh"
+  args: ["-c", "/docker_entrypoint.sh"]
+  user: root
   mounts:
     main: /app/data
 volumes:
   main:
     type: data
 health-checks:
-  main:
-    name: Bifrost API
-    success-message: The gateway is online and reachable.
-    type: docker
-    image: main
-    entrypoint: "curl"
-    args: ["-f", "http://localhost:8080/health"]
-    interval: 30s
-    timeout: 10s
-    start-period: 10s
-    retries: 3
+  web-ui:
+    name: "Web UI"
+    success-message: Bifrost is accessible
+    type: script
 interfaces:
   main:
     name: Bifrost API
@@ -53,9 +47,16 @@ interfaces:
       - http
 config: ~
 properties: ~
+dependencies: {}
 migrations:
-  from: {}
-  to: {}
+  from:
+    "*":
+      type: script
+      args: ["from"]
+  to:
+    "*":
+      type: script
+      args: ["to"]
 backup:
   create:
     type: docker
