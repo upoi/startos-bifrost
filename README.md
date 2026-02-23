@@ -4,175 +4,114 @@
   <img src="https://raw.githubusercontent.com/maximhq/bifrost/main/docs/bifrost.svg" width="200" alt="Bifrost Logo"/>
 </p>
 
-> **Bifrost AI Gateway** packaged for StartOS - The privacy-first Family Hub orchestration layer.
+> **Bifrost AI Gateway** packaged for StartOS — unified AI provider access with per-key usage tracking for the family.
 
-## Overview
-
-This package deploys **Bifrost** (by [Maxim AI](https://getmaxim.ai/bifrost)) on StartOS, providing a unified AI gateway for your Family Hub architecture.
-
-### Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Family Hub Network                          │
-│                                                                 │
-│  ┌──────────────┐    ┌──────────────────────────────────────┐  │
-│  │   Devices    │    │         StartOS Server               │  │
-│  │              │    │                                      │  │
-│  │ • Phone      │───▶│  ┌─────────────────────────────┐    │  │
-│  │ • Tablet     │    │  │  Family AI Gateway          │    │  │
-│  │ • Laptop     │    │  │  (Bifrost on Port 8080)     │    │  │
-│  │ • Desktop    │    │  │                             │    │  │
-│  └──────────────┘    │  │  ┌─────────────────────┐   │    │  │
-│                      │  │  │  Virtual Key Mgmt   │   │    │  │
-│                      │  │  │  Usage Tracking     │   │    │  │
-│                      │  │  │  Provider Routing   │   │    │  │
-│                      │  │  └──────────┬──────────┘   │    │  │
-│                      │  │             │              │    │  │
-│                      │  │  ┌──────────▼──────────┐   │    │  │
-│                      │  │  │  Request Router     │   │    │  │
-│                      │  │  └──────────┬──────────┘   │    │  │
-│                      │  └─────────────┼──────────────┘    │  │
-│                      │               │                     │  │
-│  ┌───────────────────▼────────────────▼────────────────────┐ │
-│  │                    Routing Layer                           │ │
-│  │                                                          │ │
-│  │  ┌─────────────────┐    ┌─────────────────────────────┐ │ │
-│  │  │ Local Inference │    │     Cloud Providers          │ │ │
-│  │  │                 │    │                             │ │ │
-│  │  │ SwapServeLLM   │    │ • OpenRouter                │ │ │
-│  │  │ (192.168.x.x)  │    │ • Anthropic                │ │ │
-│  │  │                 │    │ • OpenAI                   │ │ │
-│  │  │ GPU Cluster    │    │ • Google Vertex            │ │ │
-│  │  └─────────────────┘    └─────────────────────────────┘ │ │
-│  └──────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+Family Devices (phone, tablet, laptop)
+        │
+        │  Authorization: Bearer <virtual-key>
+        ▼
+┌─────────────────────────┐
+│   Family AI Gateway     │  StartOS (port 8080, LAN/TOR)
+│   (Bifrost)             │
+│                         │
+│  • Virtual key auth     │
+│  • Usage tracking       │
+│  • Provider routing     │
+│  • Request logging      │
+└──────────┬──────────────┘
+           │  Uses stored provider API keys
+           ▼
+    ┌──────────────┐
+    │  OpenRouter  │  (and/or Anthropic, OpenAI, local)
+    └──────────────┘
 ```
 
-## Features
+## Setup
 
-| Feature | Description |
-|---------|-------------|
-| **Unified API** | Single endpoint for local and cloud AI models |
-| **Virtual Keys** | Unique API keys per family application |
-| **Usage Tracking** | Monitor per-member AI usage and costs |
-| **Auto Failover** | Seamless fallback from local to cloud |
-| **Privacy First** | Local inference keeps data on your network |
-| **Web UI** | Built-in dashboard for configuration |
+All configuration is done via the **Bifrost Web UI** — no environment variables or config files.
 
-## Quick Start
+### 1. Install
+Sideload `bifrost.s9pk` via StartOS: Settings → Sideload Service.
 
-### 1. Install via StartOS Market
+### 2. Add Provider Keys (Web UI)
+Open the gateway UI and add your provider API keys:
 
-Search for "Family AI Gateway" in the StartOS Marketplace and install.
+| Provider | Base URL |
+|----------|----------|
+| OpenRouter | `https://openrouter.ai/api` ⚠️ no `/v1` suffix |
+| Anthropic | `https://api.anthropic.com` |
+| OpenAI | `https://api.openai.com/v1` |
 
-### 2. Configure SwapServeLLM
+> **Important**: OpenRouter's base URL in Bifrost must be `https://openrouter.ai/api` — Bifrost appends `/v1/chat/completions` itself. Using `https://openrouter.ai/api/v1` results in a double `/v1/v1/` path and a 404.
 
-Edit the provider configuration to point to your local SwapServeLLM instance:
+### 3. Create Virtual Keys (Web UI)
+Go to Keys in the UI and create one per family app or member. These are what clients use to authenticate — Bifrost maps them to the real provider keys internally.
 
-```bash
-# Via Web UI
-open http://<your-startos-ip>:8080
-
-# Or via config file
-vim /home/start/.startai/data/volumes/family-ai-gateway/app/data/config/providers.yaml
-```
-
-### 3. Add Cloud Providers (Optional)
-
-Set environment variables or add API keys via the web UI:
-
-```bash
-# Via StartOS properties
-OPENROUTER_API_KEY=sk-or-xxxxx
-ANTHROPIC_API_KEY=sk-ant-xxxxx
-OPENAI_API_KEY=sk-xxxxx
-```
-
-### 4. Create Family Virtual Keys
-
-Access the Keys section in the web UI to generate unique keys for each family application:
-
-- **Notes App**: `sk-fam-notes-xxxxx`
-- **Family Chat**: `sk-fam-chat-xxxxx`
-- **Homework Helper**: `sk-fam-homework-xxxxx`
+Examples:
+- `sk-fam-dad-phone`
+- `sk-fam-homework-helper`
+- `sk-fam-notes-app`
 
 ## API Usage
 
-### OpenAI-Compatible Endpoint
+### Chat Completions
 
 ```bash
-curl -X POST http://<startos-ip>:8080/openai/v1/chat/completions \
+curl -k https://<startos-address>/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-fam-notes-xxxxx" \
-  -H "X-Family-Member: dad" \
+  -H "Authorization: Bearer <your-virtual-key>" \
   -d '{
-    "model": "swapserve/llama-3.1-8b",
+    "model": "openrouter/arcee-ai/trinity-large-preview:free",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'
 ```
 
-### Switch Between Local and Cloud
+### Model Format
 
-```bash
-# Use local model (via SwapServeLLM)
-"model": "swapserve/llama-3.1-8b"
+Models are prefixed with the provider name:
 
-# Use cloud model (via OpenRouter)
-"model": "anthropic/claude-3.5-sonnet"
-
-# Use any model - Bifrost handles routing automatically
-"model": "claude-3-5-sonnet"  # Routes to available provider
+```
+openrouter/anthropic/claude-3.5-sonnet
+openrouter/openai/gpt-4o-mini
+openrouter/arcee-ai/trinity-large-preview:free
+anthropic/claude-3-5-sonnet-20241022
+openai/gpt-4o
 ```
 
-## Performance
+### Virtual Keys & Usage Tracking
 
-- **Bifrost Overhead**: ~11 µs per request
-- **Local Inference**: 18x-31x faster cold starts via SwapServeLLM
-- **Throughput**: Tested at 5,000+ RPS
+Sending `Authorization: Bearer <virtual-key>` is **required** for per-key tracking. Bifrost logs requests per virtual key, enabling you to see which app or family member is consuming what in the Logs UI.
 
-## Troubleshooting
+`allow_direct_keys` is set to `false` — clients cannot bypass the gateway with real provider API keys.
 
-### Local inference not connecting
+## Persistence
 
-```bash
-# Check SwapServeLLM is running
-curl http://192.168.1.100:8000/health
+All data lives in the StartOS data volume at `/app/data/`:
 
-# Verify network connectivity from container
-docker exec -it family-ai-gateway curl http://192.168.1.100:8000/health
-```
+| File | Contents |
+|------|----------|
+| `bifrost.db` | Provider config, virtual keys (from UI) |
+| `logs.db` | Request logs, usage tracking |
 
-### Cloud providers not working
-
-```bash
-# Verify API keys are set
-docker exec -it family-ai-gateway env | grep API_KEY
-
-# Check logs
-docker exec -it family-ai-gateway cat /app/data/logs/bifrost.log
-```
+Both survive service restarts and upgrades. Uninstalling and reinstalling will wipe them.
 
 ## Development
 
 ```bash
-# Build the package
-make build
+# Rebuild Docker image and repackage (requires Docker Desktop with WSL2 integration)
+make
 
-# Test locally
-make test
+# Force rebuild (when only config changed, not Dockerfile)
+rm -f docker-images/x86_64.tar && make
 
-# Package for distribution
-make package
+# Clean build artifacts
+make clean
 ```
 
 ## License
 
-- **Bifrost**: Apache 2.0 - [Maxim AI](https://getmaxim.ai)
+- **Bifrost**: Apache 2.0 — [Maxim AI](https://getmaxim.ai)
 - **Package**: MIT
-
----
-
-<p align="center">
-  Built with ❤️ for the Family Hub
-</p>

@@ -4195,7 +4195,7 @@ const properties1 = mod3.properties;
 const migration = mod3.migrations.fromMapping({}, "0.1.0");
 const health = {
     async "web-ui" (effects, duration) {
-        return mod4.checkWebUrl("http://bifrost.embassy:8080")(effects, duration).catch(mod4.catchError(effects));
+        return mod4.checkWebUrl("http://localhost:80")(effects, duration).catch(mod4.catchError(effects));
     }
 };
 export { setConfig1 as setConfig };

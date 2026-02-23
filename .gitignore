@@ -1,1 +1,24 @@
+# Claude Code
 .claude
+
+# StartOS build artifacts
+*.s9pk
+docker-images/
+
+# Secrets / API keys
+*.env
+.env*
+config/providers.yaml
+
+# Deno/Node
+node_modules/
+
+# Logs and databases
+*.db
+*.db-shm
+*.db-wal
+logs.db*
+
+# OS
+.DS_Store
+Thumbs.db
