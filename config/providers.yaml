@@ -5,6 +5,23 @@
 
 providers:
   # ---------------------------------------------------------------------
+  # Local - EchoNode (STT, TTS, Embeddings on-device)
+  # ---------------------------------------------------------------------
+  echonode:
+    type: openai
+    name: "EchoNode (Local)"
+    base_url: "http://echonode.embassy:8000"
+    api_key: "echonode"
+    models:
+      - "whisper-1"
+      - "kokoro"
+      - "nomic-embed-text-v2-moe"
+    capabilities:
+      - embeddings
+      - audio
+    priority: 1
+
+  # ---------------------------------------------------------------------
   # Cloud - OpenRouter (Recommended for variety)
   # ---------------------------------------------------------------------
   openrouter:
